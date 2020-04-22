@@ -1,0 +1,302 @@
+---
+title: "Text Mining: saco de palavras"
+author: "Carlos"
+date: "29 de julho de 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+```
+
+## Fazendo testes
+
+```{r}
+# Load qdap
+library(qdap)
+library(tidyverse)
+
+# Print new_text to the console
+new_text <- "DataCamp is the first online learning platform that focuses on building the best learning experience specifically for Data Science. We have offices in Boston and Belgium and to date, we trained over 250,000 (aspiring) data scientists in over 150 countries. These data science enthusiasts completed more than 9 million exercises. You can take free beginner courses, or subscribe for $25/month to get access to all premium courses."
+
+print(new_text)
+
+# Find the 10 most frequent terms: term_count
+term_count <- freq_terms(new_text, 10)
+
+# Plot term_count
+plot(term_count)
+```
+
+```{r}
+# Import text data
+tweets <- read.csv("dados/coffee.csv", stringsAsFactors = FALSE)
+
+# View the structure of tweets
+str(tweets)
+
+# Isolate text from tweets: coffee_tweets
+coffee_tweets <- tweets$text
+print(coffee_tweets[1:15])
+
+# Load tm
+library(tm)
+
+# Make a Source object: coffee_source
+coffee_source <- VectorSource(coffee_tweets)
+
+## coffee_source is already in your workspace
+
+# Make a volatile corpus: coffee_corpus
+coffee_corpus <- VCorpus(coffee_source)
+
+# Print out coffee_corpus
+coffee_corpus
+
+# Print the 15th tweet in coffee_corpus
+coffee_corpus[[15]]
+
+# Print the contents of the 15th tweet in coffee_corpus
+coffee_corpus[[15]][1]
+
+# Now use content to review plain text
+content(coffee_corpus[[10]])
+
+# Create a DataframeSource: df_source
+# df_source <- DataframeSource(example_text)
+
+# Convert df_source to a corpus: df_corpus
+# df_corpus <- VCorpus(df_source)
+
+# Examine df_corpus
+# df_corpus
+
+# Examine df_corpus metadata
+# meta(df_corpus)
+
+# Compare the number of documents in the vector source
+# vec_corpus
+
+# Compare metadata in the vector corpus
+# meta(vec_corpus)
+```
+
+```{r}
+# Create frequency
+frequency <- freq_terms(
+  tweets$text, 
+  top = 10, 
+  at.least = 3, 
+  stopwords = "Top200Words"
+)
+
+# Make a frequency barchart
+plot(frequency)
+
+# saco de palavras
+## term_frequency is loaded into your workspace
+
+# Load wordcloud package
+library(wordcloud)
+
+# extraindo texto dos tweets
+tweets_unidos <- c()
+for (tweet in coffee_tweets) {
+  tweets_unidos <- str_c(tweets_unidos, " ", tweet)
+}
+
+term_frequency <- (freq_terms(tweets_unidos, 50))$FREQ
+names(term_frequency) <- (freq_terms(tweets_unidos, 50))$WORD
+
+# Print the first 10 entries in term_frequency
+term_frequency[1:10]
+
+# Vector of terms
+terms_vec <- names(term_frequency)
+
+# Create a wordcloud for the values in word_freqs
+wordcloud(terms_vec, term_frequency, 
+          max.words = 50, colors = "red")
+
+# Select 5 colors 
+color_pal <- viridisLite::cividis(n = 50)
+
+# Examine the palette output
+color_pal 
+
+# Create a wordcloud with the selected palette
+wordcloud(terms_vec, term_frequency, 
+          max.words = 50, colors = color_pal)
+
+wordcloud(terms_vec, term_frequency, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+
+all_tweets <- VectorSource(tweets_unidos)
+
+# Create all_corpus
+all_corpus <- VCorpus(all_tweets)
+
+# Clean the corpus
+#all_clean <- clean_corpus(all_corpus)
+
+# Create all_tdm
+all_tdm <- TermDocumentMatrix(all_corpus)
+
+# Create all_m
+all_m <- as.matrix(all_tdm)
+
+# Print a commonality cloud
+commonality.cloud(all_m, max.words = 100, colors = "steelblue1")
+
+# Create all_tdm
+all_tdm <- TermDocumentMatrix(all_corpus)
+
+# Give the columns distinct names
+#colnames(all_tdm) <- c("coffee")
+
+# Create all_m
+all_m <- as.matrix(all_tdm)
+
+# Create comparison cloud
+# comparison.cloud(all_m, colors = c("orange"), max.words = 50)
+```
+
+Visualizar conexão das palavras.
+
+```{r}
+# Word association
+{word_associate(coffee_tweets, match.string = "barista", 
+               stopwords = c(Top200Words, "coffee", "amp"), 
+               network.plot = TRUE, cloud.colors = c("gray85", "darkred"))
+
+# Add title
+title(main = "Barista Coffee Tweet Associations")}
+
+# Print the dimensions of tweets_tdm
+tweets_tdm <- all_tdm
+dim(tweets_tdm)
+
+# Create tdm1
+tdm1 <- removeSparseTerms(tweets_tdm, sparse = 0.95)
+
+# Create tdm2
+tdm2 <- removeSparseTerms(tweets_tdm, sparse = 0.975)
+
+# Print tdm1
+# tdm1
+
+# Print tdm2
+# tdm2
+
+# Create tweets_tdm2
+tweets_tdm2 <- removeSparseTerms(tweets_tdm, sparse = 0.975)
+
+# Create tdm_m
+tdm_m <- as.matrix(tweets_tdm2)
+
+# Create tweets_dist
+tweets_dist <- dist(tdm_m)
+
+# Create hc
+hc <- hclust(tweets_dist)
+
+# Plot the dendrogram
+plot(hc)
+
+# Create hcd
+hcd <- as.dendrogram(hc)
+
+# Print the labels in hcd
+labels(hcd)
+
+# Change the branch color to red for "marvin" and "gaye"
+# hcd_colored <- dendextend::branches_attr_by_labels(hcd, c("marvin", "gaye"), "red")
+
+# Plot hcd
+# plot(hcd_colored, main = "Better Dendrogram")
+
+# Add cluster rectangles 
+# rect.dendrogram(hcd_colored, k = 2, border = "grey50")
+```
+
+## Análise textos do Google e Amazon
+
+```{r, eval=F}
+amzn <- read_csv("dados/500_amzn.csv")
+goog <- read_csv("dados/500_goog.csv")
+
+# Print the structure of amzn
+str(amzn)
+
+# Create amzn_pros
+amzn_pros <- amzn$pros
+
+# Create amzn_cons
+amzn_cons <- amzn$cons
+
+# Print the structure of goog
+str(goog)
+
+# Create goog_pros
+goog_pros <- goog$pros
+
+# Create goog_cons
+goog_cons <- goog$cons
+
+qdap_clean <- function(x){
+  x <- replace_abbreviation(x)
+  x <- replace_contraction(x)
+  x <- replace_number(x)
+  x <- replace_ordinal(x)
+  x <- replace_ordinal(x)
+  x <- replace_symbol(x)
+  x <- tolower(x)
+  return(x)
+}
+
+# qdap_clean the text
+qdap_cleaned_amzn_pros <- qdap_clean(amzn_pros)
+
+# Source and create the corpus
+amzn_p_corp <- VCorpus(VectorSource(qdap_cleaned_amzn_pros))
+
+tm_clean <- function(corpus){
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, stripWhitespace)
+  corpus <- tm_map(corpus, removeWords, 
+                   c(stopwords("en"), "Google", "Amazon", "company"))
+  return(corpus)
+}
+
+# tm_clean the corpus
+amzn_pros_corp <- tm_clean(amzn_p_corp)
+
+# qdap_clean the text
+qdap_cleaned_goog_pros <- qdap_clean(goog_pros)
+
+# Source and create the corpus
+goog_p_corp <- VCorpus(VectorSource(qdap_cleaned_goog_pros))
+
+# tm_clean the corpus
+goog_pros_corp <- tm_clean(goog_p_corp)
+
+tokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
+
+# Create amzn_p_tdm
+amzn_p_tdm <- TermDocumentMatrix(
+  amzn_pros_corp, 
+  control = list(tokenize = tokenizer)
+)
+
+# Create amzn_p_tdm_m
+amzn_p_tdm_m <- as.matrix(amzn_p_tdm)
+
+# Create amzn_p_freq
+amzn_p_freq <- rowSums(amzn_p_tdm_m)
+
+# Plot a wordcloud using amzn_p_freq values
+wordcloud(names(amzn_p_freq), amzn_p_freq, 
+          max.words = 25, color = "blue")
+```
+
